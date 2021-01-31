@@ -1,23 +1,14 @@
 import DataLoader from 'dataloader'
 import db from '../db/connection'
-import Tweet, { TweetTypeEnum } from '../entities/Tweet'
+import Tweet from '../entities/Tweet'
 import User from '../entities/User'
+import { selectCountsForTweet } from '../utils/utils'
 
 export const dataloaders = {
   userDataloader: new DataLoader<number, User, unknown>(async (ids) => {
     const users = await db('users').whereIn('id', ids)
 
     return ids.map((id) => users.find((u) => u.id === id))
-  }),
-  // Get the likesCount for each tweet
-  likesCountDataloader: new DataLoader<number, any, unknown>(async (ids) => {
-    const counts = await db('likes')
-      .whereIn('tweet_id', ids)
-      .count('tweet_id', { as: 'likesCount' })
-      .select('tweet_id')
-      .groupBy('tweet_id')
-
-    return ids.map((id) => counts.find((c) => c.tweet_id === id))
   }),
   isLikedDataloader: new DataLoader<any, any, unknown>(async (keys) => {
     const tweetIds = keys.map((k: any) => k.tweet_id)
@@ -28,29 +19,38 @@ export const dataloaders = {
       .andWhere('user_id', userId)
     return tweetIds.map((id) => likes.find((l) => l.tweet_id === id))
   }),
-  retweetsCountDataloader: new DataLoader<number, any, unknown>(async (ids) => {
-    const counts = await db('tweets')
-      .whereIn('parent_id', ids)
-      .andWhere('type', TweetTypeEnum.RETWEET)
-      .count('parent_id', { as: 'retweetsCount' })
-      .select('parent_id')
-      .groupBy('parent_id')
+  isRetweetedDataloader: new DataLoader<any, any, unknown>(async (keys) => {
+    const tweetIds = keys.map((k: any) => k.tweet_id)
+    const userId = keys[0].user_id
 
-    return ids.map((id) => counts.find((c) => c.parent_id === id))
+    const retweets = await db('retweets')
+      .whereIn('tweet_id', tweetIds)
+      .andWhere('user_id', userId)
+    return tweetIds.map((id) => retweets.find((r) => r.tweet_id === id))
   }),
-  commentsCountDataloader: new DataLoader<number, any, unknown>(async (ids) => {
-    const counts = await db('tweets')
-      .whereIn('parent_id', ids)
-      .andWhere('type', TweetTypeEnum.COMMENT)
-      .count('parent_id', { as: 'commentsCount' })
-      .select('parent_id')
-      .groupBy('parent_id')
+  isBookmarkedDataloader: new DataLoader<any, any, unknown>(async (keys) => {
+    const tweetIds = keys.map((k: any) => k.tweet_id)
+    const userId = keys[0].user_id
 
-    return ids.map((id) => counts.find((c) => c.parent_id === id))
+    const bookmarks = await db('bookmarks')
+      .whereIn('tweet_id', tweetIds)
+      .andWhere('user_id', userId)
+    return tweetIds.map((id) => bookmarks.find((r) => r.tweet_id === id))
   }),
   parentTweetDataloader: new DataLoader<number, Tweet, unknown>(async (ids) => {
-    const parents = await db('tweets').whereIn('id', ids)
-
+    const parents = await db('tweets')
+      .whereIn('id', ids)
+      .select(selectCountsForTweet(db))
     return ids.map((id) => parents.find((p) => p.id === id))
   }),
+  previewLinkDataloader: new DataLoader<number, unknown, unknown>(
+    async (ids) => {
+      const previews = await db('previews as p')
+        .innerJoin('previews_tweets as pt', 'pt.preview_id', '=', 'p.id')
+        .whereIn('pt.tweet_id', ids)
+        .select(['p.*', 'pt.tweet_id'])
+
+      return ids.map((id) => previews.find((p) => p.tweet_id === id))
+    }
+  ),
 }

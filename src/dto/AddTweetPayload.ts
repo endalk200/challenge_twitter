@@ -1,7 +1,12 @@
 import {
+  ArrayUnique,
   IsDefined,
   IsIn,
   IsNotEmpty,
+  IsUrl,
+  isURL,
+  Matches,
+  MaxLength,
   MinLength,
   ValidateIf,
 } from 'class-validator'
@@ -13,7 +18,21 @@ class AddTweetPayload {
   @Field()
   @IsNotEmpty()
   @MinLength(2)
+  @MaxLength(380)
   body: string
+
+  @Field(() => [String], { nullable: true })
+  @ArrayUnique()
+  @Matches(/^#[\w]{2,20}$/, {
+    each: true,
+    message:
+      'Each hashtag should start with a # and have a length betweet 2 and 20 characters',
+  })
+  hashtags?: string[]
+
+  @Field({ nullable: true })
+  @IsUrl()
+  url?: string
 
   @Field(() => Int, { nullable: true })
   @ValidateIf((o) => o.type !== undefined)

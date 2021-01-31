@@ -3,10 +3,13 @@ import { Arg, Authorized, Ctx, Mutation, Resolver } from 'type-graphql'
 import { MyContext } from '../types/types'
 
 @Resolver()
-class LikeResolver {
+class BookmarkResolver {
   @Mutation(() => String)
   @Authorized()
-  async toggleLike(@Arg('tweet_id') tweet_id: number, @Ctx() ctx: MyContext) {
+  async toggleBookmark(
+    @Arg('tweet_id') tweet_id: number,
+    @Ctx() ctx: MyContext
+  ) {
     const { db, userId } = ctx
 
     const [tweet] = await db('tweets').where('id', tweet_id)
@@ -21,21 +24,22 @@ class LikeResolver {
     }
 
     try {
-      const [alreadyLiked] = await db('likes').where(data)
+      const [alreadyBookmarked] = await db('bookmarks').where(data)
 
-      if (alreadyLiked) {
+      if (alreadyBookmarked) {
         // Delete the like and return
-        await db('likes').where(data).del()
+        await db('bookmarks').where(data).del()
 
-        return 'Like deleted'
+        return 'Bookmark deleted'
       }
 
-      await db('likes').insert(data)
+      await db('bookmarks').insert(data)
 
-      return 'Like added'
+      return 'Bookmark added'
     } catch (e) {
       throw new ApolloError(e.message)
     }
   }
 }
-export default LikeResolver
+
+export default BookmarkResolver

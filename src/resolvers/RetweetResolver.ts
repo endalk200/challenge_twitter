@@ -3,10 +3,13 @@ import { Arg, Authorized, Ctx, Mutation, Resolver } from 'type-graphql'
 import { MyContext } from '../types/types'
 
 @Resolver()
-class LikeResolver {
+class RetweetResolver {
   @Mutation(() => String)
   @Authorized()
-  async toggleLike(@Arg('tweet_id') tweet_id: number, @Ctx() ctx: MyContext) {
+  async toggleRetweet(
+    @Arg('tweet_id') tweet_id: number,
+    @Ctx() ctx: MyContext
+  ) {
     const { db, userId } = ctx
 
     const [tweet] = await db('tweets').where('id', tweet_id)
@@ -21,21 +24,21 @@ class LikeResolver {
     }
 
     try {
-      const [alreadyLiked] = await db('likes').where(data)
+      const [alreadyRetweeted] = await db('retweets').where(data)
 
-      if (alreadyLiked) {
+      if (alreadyRetweeted) {
         // Delete the like and return
-        await db('likes').where(data).del()
+        await db('retweets').where(data).del()
 
-        return 'Like deleted'
+        return 'Retweet deleted'
       }
 
-      await db('likes').insert(data)
+      await db('retweets').insert(data)
 
-      return 'Like added'
+      return 'Retweet added'
     } catch (e) {
       throw new ApolloError(e.message)
     }
   }
 }
-export default LikeResolver
+export default RetweetResolver

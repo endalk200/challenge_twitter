@@ -59,3 +59,33 @@ export const followUser = async (user: User, following: User) => {
     following_id: following.id,
   })
 }
+
+export const createHashtag = async (hashtag: string) => {
+  return await db('hashtags')
+    .insert({
+      hashtag,
+    })
+    .returning('*')
+}
+
+export const createRetweet = async (user: User, tweet: Tweet) => {
+  const [retweet] = await db('retweets')
+    .insert({
+      user_id: user.id,
+      tweet_id: tweet.id,
+    })
+    .returning('*')
+
+  return retweet
+}
+
+export const createBookmark = async (user: User, tweet: Tweet) => {
+  const [bookmark] = await db('bookmarks')
+    .insert({
+      user_id: user.id,
+      tweet_id: tweet.id,
+    })
+    .returning('*')
+
+  return bookmark
+}
